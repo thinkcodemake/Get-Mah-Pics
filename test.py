@@ -22,7 +22,7 @@ def get_imgur_id(link):
 file_limit = 100
 nsfw_filter = True
 file_types = ['jpg','gif','png']
-subreddits = ['pics']
+subreddits = ['asrhikl', 'pics']
 
 #Setup connections to Reddit and Imgur
 conn = http.client.HTTPConnection('www.reddit.com')
@@ -45,17 +45,10 @@ store_file.close()
 #For all the Subreddits listed
 for subreddit in subreddits:
 
-    #If no records of Subreddit found in store file, add it.
-    if subreddit not in store_json:
-        store_json[subreddit] = []
-
     #Console output
     print('')
     print('Downloading ' + subreddit + ':')
 
-    #Check for storage folder. If it doesn't exist, make it.
-    if not os.path.exists('./pics/' + subreddit):
-        os.makedirs('./pics/' + subreddit)
 
     #Connection to Reddit created
     hdr = {'User-Agent' : 'Testing some jazz'}
@@ -63,6 +56,19 @@ for subreddit in subreddits:
 
     #Get json response & load to dictionary
     response = conn.getresponse().readall().decode('utf-8')
+
+    if 'The resource was found at' in response:
+        print(subreddit + ' doesn\'t exist.')
+        continue
+
+    #Check for storage folder. If it doesn't exist, make it.
+    if not os.path.exists('./pics/' + subreddit):
+        os.makedirs('./pics/' + subreddit)
+
+    #If no records of Subreddit found in store file, add it.
+    if subreddit not in store_json:
+        store_json[subreddit] = []
+
     json_dict = json.loads(response)
 
     #For each Reddit Post
