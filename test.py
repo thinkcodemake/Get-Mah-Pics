@@ -18,10 +18,10 @@ def download_image(link):
 def get_imgur_id(link):
     return link.split('/')[-1]
 
-file_limit = 10
+file_limit = 100
 nsfw_filter = True
 file_types = ['jpg','gif','png']
-subreddits = ['funny', 'pics']
+subreddits = ['pics']
 
 conn = http.client.HTTPConnection('www.reddit.com')
 iconn = http.client.HTTPSConnection('api.imgur.com')
@@ -74,15 +74,32 @@ for subreddit in subreddits:
             
             ihdr = {'Authorization' : 'Client-ID 454fb76af7e09f2'}
             iconn.request('GET', '/3/image/' + img_id + '.json', headers=ihdr)
-            iresponse = iconn.getresponse().readall().decode('utf-8')
+            try:
+                iresponse = iconn.getresponse().readall().decode('utf-8')
+            except Exception as err:
+                print('Problem with ' + pdata['url'] + \
+                      '\n' + str(err))
+                continue
             ijson_dict = json.loads(iresponse)
             if ijson_dict['success']:
                 download_image(ijson_dict['data']['link'])
                 store_json[subreddit].append(pdata['id'])
+            elif '/a/' in pdata['url']:
+                iconn.request('GET', '/3/album/' + img_id + '.json', headers=ihdr)
+                try:
+                    iresponse = iconn.getresponse().readall().decode('utf-8')
+                except Exception as err:
+                    print('Problem with ' + pdata['url'] + \
+                      '\n' + str(err))
+                    continue
+                ijson_dict = json.loads(iresponse)
+                for image in ijson_dict['data']['images']:
+                    download_image(image['link'])
             else:
                 print('Imgur Issue: ' + pdata['url'])
         else:
             print('Not Downloaded: ' + link)
+iconn.close()
 conn.close()
 
 store_file = open('./data.txt', 'w')
