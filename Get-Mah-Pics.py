@@ -1,3 +1,5 @@
+#!/usr/bin/env python3.3
+
 from tkinter import *
 from tkinter import ttk
 import http.client
