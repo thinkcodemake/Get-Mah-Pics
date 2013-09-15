@@ -9,9 +9,9 @@ def get_file_type(link):
     file_type = file_type[:3]
     return file_type
 
-def download_image(link):
+def download_image(link, num):
     try:
-        urllib.request.urlretrieve(link, './pics/' + subreddit + '/' + pdata['id'] + '.' + get_file_type(link))
+        urllib.request.urlretrieve(link, './pics/' + subreddit + '/' + pdata['id'] + num + '.' + get_file_type(link))
     except urllib.error.HTTPError as err:
         print(link + ' : ' + str(err.code) + ' : ' + err.reason)
 
@@ -89,7 +89,7 @@ for subreddit in subreddits:
         #Check to see if link is a direct link to an image listed in
         #file_types. If so, Download it.
         elif link.split('.')[-1][:3] in file_types:
-            download_image(link)
+            download_image(link, '')
             store_json[subreddit].append(pdata['id'])
 
         #Imgur specific code
@@ -100,28 +100,30 @@ for subreddit in subreddits:
 
             #Connecting to Imgur.
             ihdr = {'Authorization' : 'Client-ID 454fb76af7e09f2'}
-            iconn.request('GET', '/3/image/' + img_id + '.json', headers=ihdr)
 
             #Get json response & load into ijson_dict
             try:
+                iconn.request('GET', '/3/image/' + img_id + '.json', headers=ihdr)
                 iresponse = iconn.getresponse().readall().decode('utf-8')
             except Exception as err:
                 print('Problem with ' + pdata['url'] + \
                       '\n' + str(err))
+                iconn.close()
+                iconn = http.client.HTTPSConnection('api.imgur.com')
                 continue
             ijson_dict = json.loads(iresponse)
 
             #If a successful 'GET' from Imgur, download the link.
             if ijson_dict['success']:
-                download_image(ijson_dict['data']['link'])
+                download_image(ijson_dict['data']['link'], '')
                 store_json[subreddit].append(pdata['id'])
 
             #If not successful, check if link is an Imgur Album
             elif '/a/' in pdata['url']:
 
                 #Get response from Imgur
-                iconn.request('GET', '/3/album/' + img_id + '.json', headers=ihdr)
                 try:
+                    iconn.request('GET', '/3/album/' + img_id + '.json', headers=ihdr)
                     iresponse = iconn.getresponse().readall().decode('utf-8')
                 except Exception as err:
                     print('Problem with ' + pdata['url'] + \
@@ -130,8 +132,11 @@ for subreddit in subreddits:
                 ijson_dict = json.loads(iresponse)
 
                 #Download each image.
+
+                count = 0
                 for image in ijson_dict['data']['images']:
-                    download_image(image['link'])
+                    download_image(image['link'], '-' + str(count))
+                    count += 1
 
             #Imgur problems.
             else:
