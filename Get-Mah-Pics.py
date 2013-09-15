@@ -18,6 +18,15 @@ def get_pics():
 
     setup_storage()
 
+    if file_limit.get().isalpha():
+        file_limit.set('25')
+    elif int(file_limit.get()) <= 0:
+        file_limit.set('1')
+    elif int(file_limit.get()) > 100:
+        file_limit.set('100')
+
+    progress.configure(maximum=(len(subs) * int(file_limit.get())), value=0)
+    
     for subreddit in subs:
 
         print('')
@@ -34,8 +43,12 @@ def get_pics():
 
         for post in json_dict['data']['children']:
             if not get_image(post, subreddit):
+                main.update_idletasks()
+                progress.step()
                 continue
             else:
+                main.update_idletasks()
+                progress.step()
                 print('Downloaded something.')
 
     print('Finished')
@@ -64,12 +77,7 @@ def setup_storage():
     store_file.close()
 
 def get_reddit_response(sub):
-    if file_limit.get().isalpha():
-        file_limit.set('25')
-    elif int(file_limit.get()) <= 0:
-        file_limit.set('1')
-    elif int(file_limit.get()) > 100:
-        file_limit.set('100')
+
     
     hdr = {'User-Agent' : 'Get Mah Pics'}
     conn.request('GET', '/r/' + sub + '/.json?limit=' + str(int(file_limit.get())), headers=hdr)
@@ -190,6 +198,9 @@ check = ttk.Checkbutton(mainframe, text='NSFW Filter', variable=nsfw_filter, onv
 check.grid(column=0, row=2, sticky=(W))
 check.state(statespec=['selected'])
 nsfw_filter.set('True')
+
+progress = ttk.Progressbar(mainframe, orient='horizontal', length=100, mode='determinate')
+progress.grid(column=0, row=4, columnspan=2, sticky=(W,E))
 
 ttk.Label(mainframe, text='Subreddits').grid(column=0, row=0, sticky=(E))
 ttk.Button(mainframe, text='Get Your Pics', command=get_pics).grid(column=1, row=2, sticky=(E))
