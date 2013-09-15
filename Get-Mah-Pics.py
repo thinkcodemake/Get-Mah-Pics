@@ -64,12 +64,20 @@ def setup_storage():
     store_file.close()
 
 def get_reddit_response(sub):
+    if file_limit.get().isalpha():
+        file_limit.set('25')
+    elif int(file_limit.get()) <= 0:
+        file_limit.set('1')
+    elif int(file_limit.get()) > 100:
+        file_limit.set('100')
+    
     hdr = {'User-Agent' : 'Get Mah Pics'}
-    conn.request('GET', '/r/' + sub + '/.json?limit=' + str(file_limit), headers=hdr)
+    conn.request('GET', '/r/' + sub + '/.json?limit=' + str(int(file_limit.get())), headers=hdr)
     response = conn.getresponse().readall().decode('utf-8')
     return response
 
 def get_image(post, sub):
+
     p_data = post['data']
 
     if p_data['is_self']:
@@ -79,8 +87,8 @@ def get_image(post, sub):
     if p_data['id'] in store_json[sub]:
         print('Already downloaded.')
         return False
-
-    if p_data['over_18'] and nsfw_filter:
+    
+    if p_data['over_18'] and nsfw_filter.get() == 'True':
         print('Skipping NSFW content.')
         return False
 
@@ -150,10 +158,6 @@ def get_imgur_response(i_id, i_type):
 
     return iresponse
 
-#Settings
-file_limit = 10
-nsfw_filter = True
-
 #Connections
 conn = http.client.HTTPConnection('www.reddit.com')
 i_conn = http.client.HTTPSConnection('api.imgur.com')
@@ -172,12 +176,24 @@ mainframe.columnconfigure(0, weight=1)
 mainframe.rowconfigure(0, weight=1)
 
 subreddits = StringVar()
+nsfw_filter = StringVar()
+file_limit = StringVar()
+file_limit.set('25')
 
 sub_entry = ttk.Entry(mainframe, width=20, textvariable=subreddits)
 sub_entry.grid(column=1, row=0, sticky=(W, E))
 
+file_limit_entry = ttk.Entry(mainframe, width=7, textvariable=file_limit)
+file_limit_entry.grid(column=1, row=1, sticky=(W,E))
+
+check = ttk.Checkbutton(mainframe, text='NSFW Filter', variable=nsfw_filter, onvalue='True', offvalue='False')
+check.grid(column=0, row=2, sticky=(W))
+check.state(statespec=['selected'])
+nsfw_filter.set('True')
+
 ttk.Label(mainframe, text='Subreddits').grid(column=0, row=0, sticky=(E))
-ttk.Button(mainframe, text='Get Your Pics', command=get_pics).grid(column=1, row=1, sticky=(E))
+ttk.Button(mainframe, text='Get Your Pics', command=get_pics).grid(column=1, row=2, sticky=(E))
+ttk.Label(mainframe, text='Total Posts (Max 100)').grid(column=0, row=1, sticky=(E))
 
 for child in mainframe.winfo_children():
     child.grid_configure(padx=5, pady=5)
