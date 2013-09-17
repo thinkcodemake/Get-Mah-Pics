@@ -45,12 +45,12 @@ def get_pics():
 
         for post in json_dict['data']['children']:
             if not get_image(post, subreddit):
-                main.update_idletasks()
                 progress.step()
+                main.update_idletasks()
                 continue
             else:
-                main.update_idletasks()
                 progress.step()
+                main.update_idletasks()
                 print('Downloaded something.')
 
     print('Finished')
@@ -133,6 +133,16 @@ def get_image(post, sub):
         else:
             print('Explosion sauce')
 
+    #For Devianart Links
+    elif 'deviantart.com' in p_data['domain']:
+        try:
+            djson_dict = json.loads(get_deviantart_response(link))
+            d_link = djson_dict['url']
+            download_image(d_link, sub, p_data['id'], '')
+            return True
+        except Exception as err:
+            print('Problem with ' + link + ' : ' + str(err))
+
 def download_image(link, sub, r_id, num_s):
 
     store_json[sub].append(r_id)
@@ -168,9 +178,22 @@ def get_imgur_response(i_id, i_type):
 
     return iresponse
 
+def get_deviantart_response(link):
+
+    dresponse = 'Bad Response'
+
+    try:
+        d_conn.request('GET', '/oembed?url=' + link)
+        dresponse = d_conn.getresponse().readall().decode('utf-8')
+    except Exception as err:
+        print('Problem with ' + link + ' : ' + str(err))
+
+    return dresponse
+
 #Connections
 conn = http.client.HTTPConnection('www.reddit.com')
 i_conn = http.client.HTTPSConnection('api.imgur.com')
+d_conn = http.client.HTTPConnection('backend.deviantart.com')
 
 #Other Setup
 store_json = json.loads('{}')
@@ -211,6 +234,5 @@ ttk.Label(mainframe, text='Total Posts (Max 100)').grid(column=0, row=1, sticky=
 for child in mainframe.winfo_children():
     child.grid_configure(padx=5, pady=5)
 sub_entry.focus()
-main.bind('<Return>', get_pics)
 
 main.mainloop()
