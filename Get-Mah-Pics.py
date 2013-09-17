@@ -56,6 +56,8 @@ def get_pics():
     print('Finished')
 
     #Closing the connections
+    d_conn.close()
+    t_conn.close()
     i_conn.close()
     conn.close()
 
@@ -143,6 +145,30 @@ def get_image(post, sub):
         except Exception as err:
             print('Problem with ' + link + ' : ' + str(err))
 
+    #For Tumblr Links
+    elif 'tumblr.com' in p_data['domain']:
+        
+        try:
+            tjson_dict = json.loads(get_tumblr_response(link))
+            post_list = tjson_dict['response']['posts']
+            if len(post_list) == 1 and post_list[0]['type'] == 'photo':
+                t_post = post_list[0]
+                t_photos = t_post['photos']
+
+                if len(t_photos) == 1:
+                    download_image(t_photos[0]['alt_sizes'][0]['url'], sub, p_data['id'], '')
+                else:
+                    count = 0
+                    for photo in t_photos:
+                        download_image(photo['alt_sizes'][0]['url'], sub, p_data['id'], '-' + str(count))
+                        count += 1
+                    return True
+            else:
+                print('Not a Picture Post')
+                return False
+        except Exception as err:
+            print('Problem with ' + link + ' : ' + str(err))
+
 def download_image(link, sub, r_id, num_s):
 
     store_json[sub].append(r_id)
@@ -190,10 +216,39 @@ def get_deviantart_response(link):
 
     return dresponse
 
+def get_tumblr_response(link):
+
+    t_response = 'Bad Response'
+
+    api_key = 'dkQxCaFiLnOUGOJVAcpkio0qnYMYOSEfjpWXMw9H5L6HI9Gn1o'
+
+    t_id = get_tumblr_id(link)
+    t_hostname = get_tumblr_hostname(link) + '.tumblr.com'
+
+    request = '/v2/blog/' + t_hostname + '/posts?api_key=' + api_key + '&id=' + t_id
+    
+    try:
+        t_conn.request('GET', request)
+        t_response = t_conn.getresponse().readall().decode('utf-8')
+    except Exception as err:
+        print('Problem with ' + link + ' : ' + str(err))
+
+    return t_response
+    
+def get_tumblr_id(link):
+    link_list = link.split('/')
+    return link_list[link_list.index('post') + 1]
+
+def get_tumblr_hostname(link):
+    link_list = link.split('.')
+    host_list = link_list[0].split('/')
+    return host_list[-1]
+
 #Connections
 conn = http.client.HTTPConnection('www.reddit.com')
 i_conn = http.client.HTTPSConnection('api.imgur.com')
 d_conn = http.client.HTTPConnection('backend.deviantart.com')
+t_conn = http.client.HTTPConnection('api.tumblr.com')
 
 #Other Setup
 store_json = json.loads('{}')
